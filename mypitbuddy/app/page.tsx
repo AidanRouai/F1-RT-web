@@ -5,7 +5,7 @@ export default function Home() {
     <div className="bg-[#15151e] text-white min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-8 items-center max-w-4xl mx-auto">
       <div className="text-center">
-          <h1 className="text-[#e10600] text-6xl font- font-bold mb-4">MyPitBuddy</h1>
+          <h1 className="text-[#e10600] text-6xl font-arial font-bold mb-4">MyPitBuddy</h1>
           <p className="text-xl font- text-gray-300">Your Ultimate F1 Racing Companion</p>
         </div>
 
