@@ -12,7 +12,7 @@ export default function Home() {
         <div 
         className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full mt-8">
           <Link 
-          href="/racecalendar"
+          href="/schedule"
           className="bg-[#1f1f2b] p-6 rounded-lg hover:scale-105 transition-transform">
             <h2 className="text-2xl font-bold mb-4">Race Calendar</h2>
             <p className="text-gray-300">Stay updated with upcoming races and schedules</p>

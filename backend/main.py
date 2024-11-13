@@ -34,28 +34,21 @@ class Constructor(BaseModel):
     name: str
     points: float
 
+class Race(BaseModel):
+    round: int
+    raceName: str
+    circuitName: str
+    date: str
+    time: str
+    country: str
+    flagUrl: str
+
 @app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
     try:
-        ergast = Ergast()
-        races = ergast.get_race_schedule(2022)  # Races in year 2022
-        results = []
-
-        for rnd, race in race['raceName'].items():
-            temp =ergast.get_race_schedule(2024, rnd = rnd+1) #get results. We use rnd+1 because rnd is 1-indexed
-            temp = temp.content[0]
-
-            #get sprint results
-            sprint = ergast.get_sprint_results(2024, rnd = rnd+1)
-            if sprint.content and sprint.description['round'][0] == rnd+1:
-                temp = pd.merge(temp, sprint.content[0], on = 'DriverNumber', how = 'left')
-
-        #https://docs.fastf1.dev/gen_modules/examples_gallery/plot_results_tracker.html
-
-        """
         session = fastf1.get_session(2024, 1, 'R')
         session.load()
-        
+    
         # Get driver results
         results = []
         for idx, driver in enumerate(session.results.itertuples(), 1):
@@ -69,7 +62,7 @@ async def get_driver_standings():
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    """
+    
 
 @app.get("/api/standings/constructors", response_model=List[Constructor])
 async def get_constructor_standings():
@@ -102,4 +95,64 @@ async def get_constructor_standings():
         
         return results
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/schedule", response_model=List[Race])
+async def get_race_schedule():
+    try:
+        print("Fetching schedule...")  # Debug log
+        ergast = Ergast()
+        schedule = ergast.get_race_schedule(2024)
+        races = []
+        
+        # Country code mapping
+        country_codes = {
+            'Bahrain': 'bh',
+            'Saudi Arabia': 'sa',
+            'Australia': 'au',
+            'Japan': 'jp',
+            'China': 'cn',
+            'United States': 'us',
+            'Italy': 'it',
+            'Monaco': 'mc',
+            'Canada': 'ca',
+            'Spain': 'es',
+            'Austria': 'at',
+            'United Kingdom': 'gb',
+            'Hungary': 'hu',
+            'Belgium': 'be',
+            'Netherlands': 'nl',
+            'Singapore': 'sg',
+            'Mexico': 'mx',
+            'Brazil': 'br',
+            'United Arab Emirates': 'ae',
+            'Qatar': 'qa',
+            'Las Vegas': 'us',
+            'Miami': 'us',
+        }
+        
+        for race in schedule:
+            country = race.circuit.country
+            country_code = country_codes.get(country, '')
+            if not country_code:
+                print(f"Warning: No country code found for {country}")
+                country_code = 'unknown'
+                
+            races.append(Race(
+                round=race.round,
+                raceName=race.race_name,
+                circuitName=race.circuit.circuit_name,
+                date=race.date.strftime("%Y-%m-%d"),
+                time=race.time.strftime("%H:%M:%S") if race.time else "14:00:00",
+                country=country,
+                flagUrl=f"https://flagcdn.com/w80/{country_code}.png"
+            ))
+        
+        print(f"Returning {len(races)} races")  # Debug log
+        return races
+    except Exception as e:
+        print(f"Error in get_race_schedule: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
