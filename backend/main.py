@@ -101,8 +101,7 @@ async def get_constructor_standings():
 async def get_race_schedule():
     try:
         print("Fetching schedule...")  # Debug log
-        ergast = Ergast()
-        schedule = ergast.get_race_schedule(2024)
+        schedule = fastf1.get_race_schedule(2024)
         races = []
         
         # Country code mapping
@@ -132,18 +131,18 @@ async def get_race_schedule():
         }
         
         for race in schedule:
-            country = race.circuit.country
-            country_code = country_codes.get(country, '')
+            country = race['Country']['Location']['EventName']
+            country_code = country_codes.get(country, '').lower()
             if not country_code:
                 print(f"Warning: No country code found for {country}")
                 country_code = 'unknown'
                 
             races.append(Race(
-                round=race.round,
-                raceName=race.race_name,
-                circuitName=race.circuit.circuit_name,
-                date=race.date.strftime("%Y-%m-%d"),
-                time=race.time.strftime("%H:%M:%S") if race.time else "14:00:00",
+                round=int(race['round']),
+                raceName=race['raceName'],
+                circuitName=race['Circuit']['circuitName'],
+                date=race['date'],
+                time=race['time'] if 'time' in race else "14:00:00",
                 country=country,
                 flagUrl=f"https://flagcdn.com/w80/{country_code}.png"
             ))
