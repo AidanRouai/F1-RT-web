@@ -1,12 +1,13 @@
 const BASE_URL = "https://api.openf1.org/v1";
 
 export interface Race {
-    season: number;
     round: number;
-    url: string;
     raceName: string;
-    circuitId: string;
     circuitName: string;
+    date: string;
+    time: string;
+    country: string;
+    flagUrl: string;
 }
 
 export interface Driver {
@@ -53,12 +54,6 @@ export const f1Api = {
         return response.json();
     },
 
-    async getLiveTiming(session_id: number): Promise<LiveTiming[]> {
-        const url = `${BASE_URL}/session/${session_id}/live/timing`;
-        const response = await fetch(url);
-        return response.json();
-    },
-
     async getWeather(session_id: number): Promise<Weather> {
         const url = `${BASE_URL}/session/${session_id}/weather`;
         const response = await fetch(url);
@@ -66,8 +61,11 @@ export const f1Api = {
     },
 
     async getRaceSchedule(): Promise<Race[]> {
-        const url = `${BASE_URL}/race-schedule`;
+        const url = `/api/schedule`;
         const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch schedule: ${response.statusText}`);
+        }
         return response.json();
     }
 

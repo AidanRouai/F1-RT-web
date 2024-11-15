@@ -6,6 +6,7 @@ from typing import List
 from pydantic import BaseModel
 import os
 from fastf1.ergast import Ergast
+from datetime import datetime
 
 app = FastAPI()
 
@@ -46,7 +47,8 @@ class Race(BaseModel):
 @app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
     try:
-        session = fastf1.get_session(2024, 1, 'R')
+        
+        session = fastf1.get_session(2024, 'Australia', 'R')
         session.load()
     
         # Get driver results
@@ -67,7 +69,7 @@ async def get_driver_standings():
 @app.get("/api/standings/constructors", response_model=List[Constructor])
 async def get_constructor_standings():
     try:
-        session = fastf1.get_session(2024, 1, 'R')
+        session = fastf1.get_session(2024, 'Australia', 'R')
         session.load()
         
         # Process constructor standings
@@ -101,7 +103,8 @@ async def get_constructor_standings():
 async def get_race_schedule():
     try:
         print("Fetching schedule...")  # Debug log
-        schedule = fastf1.get_race_schedule(2024)
+        schedule = fastf1.get_event_schedule(2024)
+        schedule.load()
         races = []
         
         # Country code mapping

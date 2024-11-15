@@ -13,20 +13,40 @@ interface Constructor {
   points: number;
 }
 
+export const revalidate = 300; // revalidate every 5 minutes
+
 async function getDrivers(): Promise<Driver[]> {
-  const res = await fetch('http://localhost:8000/api/standings');
-  if (!res.ok) {
-    throw new Error('Failed to fetch standings');
+  try {
+    const res = await fetch('http://localhost:8000/api/standings', {
+      next: { revalidate: 300 }, // cache for 5 minutes
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch standings: ${res.status}`);
+    }
+    
+    return res.json();
+  } catch (error) {
+    console.error('Error fetching drivers:', error);
+    return []; // Return empty array instead of throwing
   }
-  return res.json();
 }
 
 async function getConstructors(): Promise<Constructor[]> {
-  const res = await fetch('http://localhost:8000/api/standings/constructors');
-  if (!res.ok) {
-    throw new Error('Failed to fetch constructor standings');
+  try {
+    const res = await fetch('http://localhost:8000/api/standings/constructors', {
+      next: { revalidate: 300 }, // cache for 5 minutes
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch constructor standings: ${res.status}`);
+    }
+    
+    return res.json();
+  } catch (error) {
+    console.error('Error fetching constructors:', error);
+    return []; // Return empty array instead of throwing
   }
-  return res.json();
 }
 
 export default async function Standings() {
@@ -34,6 +54,8 @@ export default async function Standings() {
     getDrivers(),
     getConstructors()
   ]);
+
+  const hasData = drivers.length > 0 || constructors.length > 0;
 
   return (
     <div className="bg-[#15151e] text-white min-h-screen p-8 pb-20 sm:p-20">
@@ -47,45 +69,59 @@ export default async function Standings() {
 
         <h1 className="text-4xl font-bold mb-12">Championship Standings</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Drivers Championship */}
-          <div className="bg-[#1f1f2b] p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">Drivers Championship</h2>
-            <div className="space-y-4">
-              {drivers.map((driver) => (
-                <div 
-                  key={driver.driver_number} 
-                  className="flex items-center justify-between p-4 bg-[#15151e] rounded"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-[#e10600] font-bold">{driver.position}</span>
-                    <span>{driver.full_name}</span>
-                  </div>
-                  <span className="font-bold">{driver.points} pts</span>
-                </div>
-              ))}
-            </div>
+        {!hasData ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No standings data available for the current season yet.</p>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {/* Drivers Championship */}
+            <div className="bg-[#1f1f2b] p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-6">Drivers Championship</h2>
+              <div className="space-y-4">
+                {drivers.length > 0 ? (
+                  drivers.map((driver) => (
+                    <div 
+                      key={driver.driver_number} 
+                      className="flex items-center justify-between p-4 bg-[#15151e] rounded"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-[#e10600] font-bold">{driver.position}</span>
+                        <span>{driver.full_name}</span>
+                      </div>
+                      <span className="font-bold">{driver.points} pts</span>
+                    </div>
+                  ))
+                ) : (
+                  <p>No driver data available</p>
+                )}
+              </div>
+            </div>
 
-          {/* Constructors Championship */}
-          <div className="bg-[#1f1f2b] p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-6">Constructors Championship</h2>
-            <div className="space-y-4">
-              {constructors.map((constructor) => (
-                <div 
-                  key={constructor.name} 
-                  className="flex items-center justify-between p-4 bg-[#15151e] rounded"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="text-[#e10600] font-bold">{constructor.position}</span>
-                    <span>{constructor.name}</span>
-                  </div>
-                  <span className="font-bold">{constructor.points} pts</span>
-                </div>
-              ))}
+            {/* Constructors Championship */}
+            <div className="bg-[#1f1f2b] p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-6">Constructors Championship</h2>
+              <div className="space-y-4">
+                {constructors.length > 0 ? (
+                  constructors.map((constructor) => (
+                    <div 
+                      key={constructor.name} 
+                      className="flex items-center justify-between p-4 bg-[#15151e] rounded"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className="text-[#e10600] font-bold">{constructor.position}</span>
+                        <span>{constructor.name}</span>
+                      </div>
+                      <span className="font-bold">{constructor.points} pts</span>
+                    </div>
+                  ))
+                ) : (
+                  <p>No constructor data available</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
