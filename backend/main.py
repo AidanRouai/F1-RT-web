@@ -7,6 +7,12 @@ from pydantic import BaseModel
 import os
 from fastf1.ergast import Ergast
 from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import colormaps
+from matplotlib.collections import LineCollection
+
+
 
 app = FastAPI()
 
@@ -152,9 +158,38 @@ async def get_race_schedule():
         
         print(f"Returning {len(races)} races")  # Debug log
         return races
+
     except Exception as e:
         print(f"Error in get_race_schedule: {str(e)}")
         print(f"Error type: {type(e)}")
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+async def get_gear_shifts():
+    #Get gear shifts on track 
+
+    session = fastf1.get_session(2024, 1, 'R')
+    session.load()
+
+    lap = session.lap.pickfastest()
+    tel = lap.get_telemetry()
+
+    #Prepare the graph and values for plotting
+    x = np.array(tel['X'].values)
+    y = np.array(tel['Y'].values)
+
+    points = np.array([x,y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:1], points[1:]], axis =1)
+    gear = tel['nGear'].to_numpy().astype(float)
+
+    #Createa a line collection 
+
+    cmap = colormaps['Paired']
+    lc_comp = LineCollection(segments, norm = plt.Normalize(1, cmap.N+1), cmap=cmap)
+    lc_comp.set_array(gear)
+    lc_comp.set_linewidth(4)
+
+    #Create the plot 
+
+    plt.gca().add_collection(lc_comp)

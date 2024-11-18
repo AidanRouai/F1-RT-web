@@ -37,8 +37,8 @@ export default function Home() {
             href="/pastresults"
             className="bg-[#1f1f2b] p-6 rounded-lg hover:scale-105 transition-transform"
           >
-            <h2 className="text-2xl font-bold mb-4"> Past Results</h2>
-            <p className="text-gray-300">Past results from previous races</p>
+            <h2 className="text-2xl font-bold mb-4"> Car Telemetry</h2>
+            <p className="text-gray-300">In depth car telemetry data</p>
           </Link>
         </div>
       </main>
