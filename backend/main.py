@@ -175,6 +175,7 @@ async def get_gear_shifts():
     lap = session.lap.pickfastest()
     tel = lap.get_telemetry()
 
+
     #Prepare the graph and values for plotting
     x = np.array(tel['X'].values)
     y = np.array(tel['Y'].values)
@@ -193,3 +194,19 @@ async def get_gear_shifts():
     #Create the plot 
 
     plt.gca().add_collection(lc_comp)
+    plt.axis('equal')
+    plt.trick_params(labelleft = False, left = False, lablebottom = False, bottom = False)
+
+    title = plt.suptitle(
+        f"Fastest Lap Gear Shift Visualization"
+        f{lap['Driver']} - {session.event['EventName']} {session.event.year}
+    )
+
+    #Add a collorbar to the plot. Shift the colorbar ticks by +0.5 so that they are centered for each color segment 
+    
+    cbar = plt.colorbar(mappable=lc_comp, label="Gear",
+                        boundaries=np.arange(1, 10))
+    cbar.set_ticks(np.arange(1.5, 9.5))
+    cbar.set_ticklabels(np.arange(1, 9))
+
+    plt.show()
