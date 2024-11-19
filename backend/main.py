@@ -50,7 +50,6 @@ class Race(BaseModel):
     country: str
     flagUrl: str
 
-@app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
     try:
         
@@ -72,7 +71,6 @@ async def get_driver_standings():
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.get("/api/standings/constructors", response_model=List[Constructor])
 async def get_constructor_standings():
     try:
         session = fastf1.get_session(2024, 'Australia', 'R')
@@ -105,7 +103,6 @@ async def get_constructor_standings():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/schedule", response_model=List[Race])
 async def get_race_schedule():
     try:
         print("Fetching schedule...")  # Debug log
@@ -180,8 +177,8 @@ async def get_gear_shifts():
     x = np.array(tel['X'].values)
     y = np.array(tel['Y'].values)
 
-    points = np.array([x,y]).T.reshape(-1, 1, 2)
-    segments = np.concatenate([points[:1], points[1:]], axis =1)
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
     gear = tel['nGear'].to_numpy().astype(float)
 
     #Createa a line collection 
@@ -198,9 +195,9 @@ async def get_gear_shifts():
     plt.trick_params(labelleft = False, left = False, lablebottom = False, bottom = False)
 
     title = plt.suptitle(
-        f"Fastest Lap Gear Shift Visualization"
-        f{lap['Driver']} - {session.event['EventName']} {session.event.year}
-    )
+    f"Fastest Lap Gear Shift Visualization\n"
+    f"{lap['Driver']} - {session.event['EventName']} {session.event.year}"
+)
 
     #Add a collorbar to the plot. Shift the colorbar ticks by +0.5 so that they are centered for each color segment 
     
