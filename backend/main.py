@@ -50,6 +50,7 @@ class Race(BaseModel):
     country: str
     flagUrl: str
 
+@app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
     try:
         
@@ -71,6 +72,7 @@ async def get_driver_standings():
         raise HTTPException(status_code=500, detail=str(e))
     
 
+@app.get("/api/standings/constructors", response_model=List[Constructor])
 async def get_constructor_standings():
     try:
         session = fastf1.get_session(2024, 'Australia', 'R')
@@ -103,6 +105,7 @@ async def get_constructor_standings():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/race-schedule", response_model=List[Race])
 async def get_race_schedule():
     try:
         print("Fetching schedule...")  # Debug log
@@ -163,6 +166,7 @@ async def get_race_schedule():
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/gear-shifts")
 async def get_gear_shifts():
     #Get gear shifts on track 
 
@@ -207,3 +211,4 @@ async def get_gear_shifts():
     cbar.set_ticklabels(np.arange(1, 9))
 
     plt.show()
+

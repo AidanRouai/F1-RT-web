@@ -34,7 +34,7 @@ export default function Home() {
           </Link>
 
           <Link
-            href="/pastresults"
+            href="/telemetry"
             className="bg-[#1f1f2b] p-6 rounded-lg hover:scale-105 transition-transform"
           >
             <h2 className="text-2xl font-bold mb-4"> Car Telemetry</h2>

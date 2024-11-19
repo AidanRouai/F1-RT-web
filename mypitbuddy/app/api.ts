@@ -47,7 +47,7 @@ export interface Weather {
 }
 
 
-export const f1Api = {
+export const OpenF1Api = {
     async getDrivers(session_id?: number): Promise<Driver[]> {
         const url = session_id ? `${BASE_URL}/session/${session_id}/drivers` : `${BASE_URL}/drivers`;
         const response = await fetch(url);
