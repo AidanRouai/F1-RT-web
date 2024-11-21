@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import fastf1
 import pandas as pd
@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colormaps
 from matplotlib.collections import LineCollection
-
+import io
+from fastapi.responses import StreamingResponse
+import logging
 
 
 app = FastAPI()
@@ -52,24 +54,49 @@ class Race(BaseModel):
 
 @app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
-    try:
-        
-        session = fastf1.get_session(2024, 'Australia', 'R')
-        session.load()
-    
-        # Get driver results
-        results = []
-        for idx, driver in enumerate(session.results.itertuples(), 1):
-            results.append(Driver(
-                position=idx,
-                driver_number=str(driver.DriverNumber),
-                full_name=f"{driver.FirstName} {driver.LastName}",
-                points=float(driver.Points)
-            ))
-        
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    ergast = Ergast()
+    races = ergast.get_race_schedule(2023)  # Races in year 2024
+    results = []
+
+    # For each race in the season
+    for rnd, race in races['raceName'].items():
+        # Get results. Note that we use the round no. + 1, because the round no.
+        # starts from one (1) instead of zero (0)
+        temp = ergast.get_race_results(season=2023, round=rnd + 1)
+        temp = temp.content[0]
+
+        # If there is a sprint, get the results as well
+        sprint = ergast.get_sprint_results(season=2023, round=rnd + 1)
+        if sprint.content and sprint.description['round'][0] == rnd + 1:
+            temp = pd.merge(temp, sprint.content[0], on='driverCode', how='left')
+            # Add sprint points and race points to get the total
+            temp['points'] = temp['points_x'] + temp['points_y']
+            temp.drop(columns=['points_x', 'points_y'], inplace=True)
+
+        # Add round no. and grand prix name
+        temp['round'] = rnd + 1
+        temp['race'] = race.removesuffix(' Grand Prix')
+        temp = temp[['round', 'race', 'driverCode', 'points']]  # Keep useful cols.
+        results.append(temp)
+
+    # Append all races into a single dataframe
+    results = pd.concat(results)
+    races = results['race'].drop_duplicates()
+
+    # Create a list to store Driver objects
+    print(results.columns)
+    driver_list = []
+    for idx, driver in enumerate(results.itertuples(), 1):  
+        driver_list.append(Driver(
+            position=idx,
+            driver_number=str(driver.driver_number),
+            full_name=f"{driver.FirstName} {driver.LastName}",
+            points=float(driver.Points)
+        ))
+
+    return driver_list  # Return the list of Driver objects
+
+
     
 
 @app.get("/api/standings/constructors", response_model=List[Constructor])
@@ -167,17 +194,19 @@ async def get_race_schedule():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/gear-shifts")
-async def get_gear_shifts():
-    #Get gear shifts on track 
-
-    session = fastf1.get_session(2024, 1, 'R')
+async def get_gear_shifts(
+    year: int = Query(..., description="Year of the event"),
+    location: str = Query(..., description="Location of the event"),
+    event_type: str = Query(..., description="Type of the event (R, Q, FP1, FP2, FP3)")
+):
+    # Get gear shifts on track 
+    session = fastf1.get_session(year, location, event_type)
     session.load()
 
     lap = session.lap.pickfastest()
     tel = lap.get_telemetry()
 
-
-    #Prepare the graph and values for plotting
+    # Prepare the graph and values for plotting
     x = np.array(tel['X'].values)
     y = np.array(tel['Y'].values)
 
@@ -185,30 +214,32 @@ async def get_gear_shifts():
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
     gear = tel['nGear'].to_numpy().astype(float)
 
-    #Createa a line collection 
-
+    # Create a line collection 
     cmap = colormaps['Paired']
-    lc_comp = LineCollection(segments, norm = plt.Normalize(1, cmap.N+1), cmap=cmap)
+    lc_comp = LineCollection(segments, norm=plt.Normalize(1, cmap.N+1), cmap=cmap)
     lc_comp.set_array(gear)
     lc_comp.set_linewidth(4)
 
-    #Create the plot 
-
+    # Create the plot 
     plt.gca().add_collection(lc_comp)
     plt.axis('equal')
-    plt.trick_params(labelleft = False, left = False, lablebottom = False, bottom = False)
+    plt.tick_params(labelleft=False, left=False, labelbottom=False, bottom=False)
 
-    title = plt.suptitle(
-    f"Fastest Lap Gear Shift Visualization\n"
-    f"{lap['Driver']} - {session.event['EventName']} {session.event.year}"
-)
+    plt.suptitle(
+        f"Fastest Lap Gear Shift Visualization\n"
+        f"{lap['Driver']} - {session.event['EventName']} {session.event.year}"
+    )
 
-    #Add a collorbar to the plot. Shift the colorbar ticks by +0.5 so that they are centered for each color segment 
-    
     cbar = plt.colorbar(mappable=lc_comp, label="Gear",
                         boundaries=np.arange(1, 10))
     cbar.set_ticks(np.arange(1.5, 9.5))
     cbar.set_ticklabels(np.arange(1, 9))
 
-    plt.show()
+    # Save plot to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+
+    return StreamingResponse(buf, media_type="image/png")
 
