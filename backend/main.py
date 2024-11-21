@@ -54,48 +54,54 @@ class Race(BaseModel):
 
 @app.get("/api/standings", response_model=List[Driver])
 async def get_driver_standings():
-    ergast = Ergast()
-    races = ergast.get_race_schedule(2023)  # Races in year 2024
-    results = []
+    try:
+        ergast = Ergast()
+        races = ergast.get_race_schedule(2022)  # Races in year 2022
+        results = []
 
-    # For each race in the season
-    for rnd, race in races['raceName'].items():
-        # Get results. Note that we use the round no. + 1, because the round no.
-        # starts from one (1) instead of zero (0)
-        temp = ergast.get_race_results(season=2023, round=rnd + 1)
-        temp = temp.content[0]
+        # For each race in the season
+        for rnd, race in races['raceName'].items():
+            # Get results. Note that we use the round no. + 1, because the round no.
+            # starts from one (1) instead of zero (0)
+            temp = ergast.get_race_results(season=2022, round=rnd + 1)
+            temp = temp.content[0]
 
-        # If there is a sprint, get the results as well
-        sprint = ergast.get_sprint_results(season=2023, round=rnd + 1)
-        if sprint.content and sprint.description['round'][0] == rnd + 1:
-            temp = pd.merge(temp, sprint.content[0], on='driverCode', how='left')
-            # Add sprint points and race points to get the total
-            temp['points'] = temp['points_x'] + temp['points_y']
-            temp.drop(columns=['points_x', 'points_y'], inplace=True)
+            # If there is a sprint, get the results as well
+            sprint = ergast.get_sprint_results(season=2022, round=rnd + 1)
+            if sprint.content and sprint.description['round'][0] == rnd + 1:
+                temp = pd.merge(temp, sprint.content[0], on='driverCode', how='left')
+                # Add sprint points and race points to get the total
+                temp['points'] = temp['points_x'] + temp['points_y']
+                temp.drop(columns=['points_x', 'points_y'], inplace=True)
 
-        # Add round no. and grand prix name
-        temp['round'] = rnd + 1
-        temp['race'] = race.removesuffix(' Grand Prix')
-        temp = temp[['round', 'race', 'driverCode', 'points']]  # Keep useful cols.
-        results.append(temp)
+            # Add round no. and grand prix name
+            temp['round'] = rnd + 1
+            temp['race'] = race.removesuffix(' Grand Prix')
+            temp = temp[['round', 'race', 'driverCode', 'points']]  # Keep useful cols.
+            results.append(temp)
+    except Exception as e:
+        logging.error(f"Error processing round {rnd + 1}: {e}")
 
-    # Append all races into a single dataframe
-    results = pd.concat(results)
-    races = results['race'].drop_duplicates()
+        # Append all races into a single dataframe
+        results = pd.concat(results)
+        races = results['race'].drop_duplicates()
 
-    # Create a list to store Driver objects
-    print(results.columns)
-    driver_list = []
-    for idx, driver in enumerate(results.itertuples(), 1):  
-        driver_list.append(Driver(
-            position=idx,
-            driver_number=str(driver.driver_number),
-            full_name=f"{driver.FirstName} {driver.LastName}",
-            points=float(driver.Points)
-        ))
+        # Create a list to store Driver objects
+        driver_list = []
 
-    return driver_list  # Return the list of Driver objects
-
+        for idx, driver in enumerate(results.itertuples(), 1):  
+            driver_list.append(Driver(
+                position=idx,
+                driver_number=str(driver.driverCode),
+                full_name=f"{driver.FirstName} {driver.LastName}",
+                points=float(driver.Points)
+            ))
+        print(driver_list)
+    try:
+        return driver_list  # Return the list of Driver objects
+    except Exception as e:
+        logging.error(f"Error fetching driver standings: {e}")
+        return []
 
     
 
