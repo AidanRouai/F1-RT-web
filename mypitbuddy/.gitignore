@@ -42,6 +42,3 @@ next-env.d.ts
 # cache
 /cache
 /__pycache__
-# virtual environments
-.venv/
-venv/
